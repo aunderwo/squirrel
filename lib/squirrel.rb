@@ -137,8 +137,7 @@ module Squirrel
     # pagination was requested. In this case, it adds +pages+ and +total_results+ accessors
     # to the result set. See Paginator for more details.
     def paginate_result_set set, conditions
-      limit  = conditions.delete(:limit)
-      offset = conditions.delete(:offset)
+      limit, offset, conditions = conditions_for_paginate_result_set conditions
 
       class << set
         attr_reader :pages
@@ -154,6 +153,14 @@ module Squirrel
       set.extend( Squirrel::WillPagination )
     end
     
+    # extract limit and offset from conditions and remove unecessary order clause that mya cause problems in PostgreSQL
+    def conditions_for_paginate_result_set conditions
+      limit  = conditions.delete(:limit)
+      offset = conditions.delete(:offset)
+      conditions.delete(:order)
+      return limit, offset, conditions
+    end
+
     # ConditionGroups are groups of Conditions, oddly enough. They most closely map to models
     # in your schema, but they also handle the grouping jobs for the #any and #all blocks.
     class ConditionGroup
