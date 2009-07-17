@@ -287,4 +287,25 @@ class SquirrelTest < Test::Unit::TestCase
     query = User.find(:query){ posts.body == posts.tags.name }
     assert_equal ["((posts.body = tags.name))"], query.to_find_conditions
   end
+
+  def test_order_is_removed_from_paginate_total_pages_conditions
+    query = Post.find(:query) do
+      body.contains? "is"
+      paginate :page => 1, :per_page => 4 
+      order_by title
+    end
+    # before pagination
+    assert_equal ["(posts.body LIKE ?)", "%is%"], query.to_find_parameters[:conditions]
+    assert_equal "posts.title", query.to_find_parameters[:order]
+    assert_equal 0, query.to_find_parameters[:offset]
+    assert_equal 4, query.to_find_parameters[:limit]
+    
+    # adjust find parameters for pagination
+    limit, offset, conditions = query.conditions_for_paginate_result_set query.to_find_parameters
+    # after pagination
+    assert_equal ["(posts.body LIKE ?)", "%is%"], conditions[:conditions]
+    assert_equal 0, offset
+    assert_equal 4, limit
+    assert_equal nil , conditions[:order]
+  end
 end
